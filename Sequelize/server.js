@@ -1,37 +1,53 @@
-const Sequelize = require("sequelize");
-const data = require("./data");
-const app = require("./app");
+const { Sequelize, Model, DataTypes } = require("sequelize");
 
-const connection = new Sequelize("sys", "root", "admin", {
+// Option 3: Passing parameters separately (other dialects)
+const sequelize = new Sequelize("development", "root", "admin", {
   host: "localhost",
   dialect: "mysql",
 });
-module.exports = connection;
-const posts = require("./models/models");
-const user = require("./models/models");
-console.log(user, posts);
-(async () => {
-  try {
-    await connection.authenticate();
-    console.log("Connection has been established successfully.");
-    //Start the server
-    app.listen(process.env.PORT, () => {
-      console.log("Servier started");
-    });
-  } catch (error) {
-    console.error("Unable to connect to the database:", error);
-  }
-})();
+
+const User = sequelize.define("user", {
+  favoriteColor: {
+    type: DataTypes.TEXT,
+    defaultValue: "green",
+  },
+  firstName: DataTypes.STRING,
+  lastName: DataTypes.STRING,
+  username: DataTypes.STRING,
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+});
 
 (async () => {
-  console.log(user, posts);
-  await user.hasOne(posts);
-  await connection.sync({ force: true });
-  await user.bulkCreate(data);
-  await posts.create({
-    UserId: 1,
-    title: "Test",
-    description: "Sequelize.STRING",
+  //await sequelize.sync({ force: true });
+  //const jane = await User.create({ username: "alice123", isAdmin: true });
+  // await User.update(
+  //   { lastName: "Doe", firstName: "bar" },
+  //   {
+  //     where: {
+  //       firstName: null,
+  //     },
+  //   }
+  // );
+
+  const User = await sequelize.define("user", {
+    firstName: DataTypes.TEXT,
+    lastName: DataTypes.TEXT,
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return `${this.firstName} ${this.lastName}`;
+      },
+      set(value) {
+        throw new Error("Do not try to set the `fullName` value!");
+      },
+    },
   });
-  console.log("All models were synchronized successfully.");
+
+  const users = await User.findAll({
+    attributes: ["firstName"],
+  });
+  console.log("All users:", JSON.stringify(users, null, 2));
 })();
